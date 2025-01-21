@@ -1,0 +1,470 @@
+#include <iostream>
+#include <cstring>
+#include <cstdlib>
+#include <fstream>
+#include <vector>
+using namespace std;
+
+class Vehicle // Base class
+{
+protected:
+    string vehcID, brand, model, type;
+    double rent;
+    bool available;
+
+public:
+    Vehicle() : available(true) { } // Initialize available to true
+
+    virtual void details(bool showAvailability) // To display details of the vehicle
+    {
+        cout << "\nVehicle ID: " << vehcID
+            << "\nBrand: " << brand
+            << "\nModel: " << model
+            << "\nRent: " << rent << " Rs per hour";
+
+        if (showAvailability) // Availability will not be shown while viewing rented vehicles
+            cout << "\nAvailable: " << isAvailable();
+    }
+
+    string isAvailable() // Returns yes or no
+    {
+        return (available ? "Yes" : "No");
+    }
+
+    void setAvailablity(bool av)
+    {
+        available = av; // sets availability to false when vehicle is rented
+    }
+
+    bool getAvailablity()
+    {
+        return available;
+    }
+
+    string getId() // Returns the vehicle id
+    {
+        return vehcID;
+    }
+
+    string getType()
+    {
+        return type;
+    }
+};
+
+struct Node
+{
+    Vehicle* vehicle; // Can store either Car or Bike
+    Node* next;
+
+    Node(Vehicle* v) : vehicle(v), next(nullptr) {}
+};
+
+class VehicleList
+{
+private:
+    Node* head;
+
+public:
+    VehicleList() : head(nullptr) {}
+
+    // Add a vehicle to the list
+    void addVehicle(Vehicle* vehicle) {
+        Node* newNode = new Node(vehicle);
+        newNode->next = head;
+        head = newNode;
+    }
+
+    // Display all vehicles in the list
+    void displayVehicles() {
+        if (!head) {
+            cout << "\n\tNo Vehicles available!\n";
+            return;
+        }
+
+        Node* current = head;
+        while (current) {
+            current->vehicle->details(true); // Show availability
+            current = current->next;
+        }
+    }
+
+    Vehicle* searchVehicleById(const string& id)
+    {
+        Node* current = head;
+        while (current) {
+            if (current->vehicle->getId() == id) {
+                return current->vehicle; // Return the vehicle if ID matches
+            }
+            current = current->next;
+        }
+        return nullptr; // Return null if not found
+    }
+
+    ~VehicleList() {
+        // Clean up the list
+        Node* current = head;
+        while (current) {
+            Node* temp = current;
+            current = current->next;
+            delete temp->vehicle; // Delete the vehicle object
+            delete temp; // Delete the node
+        }
+    }
+};
+
+// Custom Queue class
+class VehicleQueue {
+private:
+    Node* front; // Pointer to the front node
+    Node* rear;  // Pointer to the rear node
+
+public:
+    // Constructor
+    VehicleQueue() : front(nullptr), rear(nullptr) {}
+
+    // Destructor to clean up memory
+    ~VehicleQueue() {
+        while (!isEmpty()) {
+            dequeue();
+        }
+    }
+
+    // Check if the queue is empty
+    bool isEmpty() {
+        return front == nullptr;
+    }
+
+    // Enqueue: Add a vehicle to the queue
+    void enqueue(Vehicle* v) {
+        Node* newNode = new Node(v);
+        if (isEmpty()) {
+            front = rear = newNode;
+        }
+        else {
+            rear->next = newNode;
+            rear = newNode;
+        }
+        cout << "Vehicle added to the queue.\n";
+    }
+
+    // Dequeue: Remove a vehicle from the front of the queue
+    Vehicle* dequeue() {
+        if (isEmpty()) {
+            cout << "Queue is empty. No vehicle to remove.\n";
+            return nullptr;
+        }
+        Node* temp = front;
+        Vehicle* vehicle = temp->vehicle;
+        front = front->next;
+        if (front == nullptr) {
+            rear = nullptr;
+        }
+        delete temp; // Delete the node
+        return vehicle;
+    }
+
+    // Peek: View the front vehicle without removing it
+    Vehicle* peek() {
+        if (isEmpty()) {
+            cout << "Queue is empty. No vehicle to display.\n";
+            return nullptr;
+        }
+        return front->vehicle;
+    }
+
+    // Display all vehicles in the queue
+    void display() {
+        if (isEmpty()) {
+            cout << "No rented vehicles in the queue.\n";
+            return;
+        }
+        Node* current = front;
+        cout << "Rented Vehicles:\n";
+        while (current) {
+            current->vehicle->details(false); // Show vehicle details without availability
+            current = current->next;
+        }
+    }
+};
+
+class Car : public Vehicle // Derived Class - inheriting features from Vehicle class
+{
+private:
+    int seatNum;
+    string transmission;
+
+public:
+    Car(string id, string b, string m, double r, bool avl, int seats, string trs) {
+        type = "car";
+        vehcID = id;
+        brand = b;
+        model = m;
+        rent = r;
+        available = avl;
+        seatNum = seats;
+        transmission = trs;
+    }
+
+    void details(bool showAvailability) {
+        Vehicle::details(showAvailability);
+        cout << "\nNumber of seats: " << seatNum;
+        cout << "\nTransmission Type: " << transmission << endl;
+    }
+};
+
+class Bike : public Vehicle
+{
+private:
+    int gears;
+
+public:
+    Bike(string id, string b, string m, double r, bool avl, int gr) {
+        type = "bike";
+        vehcID = id;
+        brand = b;
+        model = m;
+        rent = r;
+        available = avl;
+        gears = gr;
+    }
+
+    void details(bool showAvailability) {
+        Vehicle::details(showAvailability);
+        cout << "\nNumber of gears: " << gears << endl;
+    }
+};
+
+class Customer
+{
+private:
+    string name;
+    int number;
+    vector<Car*> rentedCars;
+    vector<Bike*> rentedBikes;
+
+public:
+    Customer(string n, int num) : name(n), number(num) {}
+
+    void rentCar(Car* car) {
+        if (car->getAvailablity()) {
+            rentedCars.push_back(car);
+            car->setAvailablity(false);
+            cout << "\n\tVehicle Successfully Rented!\n";
+        }
+        else {
+            cout << "\n\tCar not Available!\n";
+        }
+    }
+
+    void rentBike(Bike* bike) {
+        if (bike->getAvailablity()) {
+            rentedBikes.push_back(bike);
+            bike->setAvailablity(false);
+            cout << "\n\tVehicle Successfully Rented!\n";
+        }
+        else {
+            cout << "\n\tBike not Available!\n";
+        }
+    }
+
+    void viewRented() {
+        if (rentedCars.empty() && rentedBikes.empty())
+            cout << "\n\tNo Vehicles have been Rented yet!\n";
+        else {
+            for (Car* car : rentedCars)
+                car->details(false); // Passing false to hide availability
+
+            for (Bike* bike : rentedBikes)
+                bike->details(false); // Passing false to hide availability
+        }
+    }
+};
+
+void menu() {
+    cout << "\n----\tMenu\t----";
+    cout << "\nEnter\n1. to View Vehicles."
+        << "\n2. to Rent a vehicle."
+        << "\n3. to View rented vehicles."
+        << "\n4. to Exit\n";
+    cout << "\nEnter your choice: ";
+}
+
+void loadVehicles(VehicleList& carList, VehicleList& bikeList) {
+    ifstream read("Vehicles.txt");
+
+
+    string line;
+    bool isCar = true; // Start reading cars
+    int carIndex = 0, bikeIndex = 0;
+
+    while (getline(read, line))
+    {
+        if (line == "Cars")
+        {
+            isCar = true;
+            continue;
+        }
+        else if (line == "Bikes")
+        {
+            isCar = false;
+            continue;
+        }
+
+        string id, brand, model, transmission;
+        double rent;
+        bool avail;
+        int seats, gears;
+        char availability;
+
+        if (isCar && carIndex < 5)
+        {
+            // Read car details
+            /*
+            read >> id >> brand >> model >> rent >> availability >> seats >> transmission;
+            avail = (availability == '1');
+
+             getline(read, id, ',');
+            getline(read, brand, ',');
+            getline(read, model, ',');
+            read >> rent >> available >> seatNum;
+            read.ignore(); // ignore the comma
+            getline(read, transmission);
+            */
+
+            int pos = 0;
+            pos = line.find(' ');
+            id = line.substr(0, pos);
+            line.erase(0, pos + 1);
+
+            pos = line.find(' ');
+            brand = line.substr(0, pos);
+            line.erase(0, pos + 1);
+
+            pos = line.find(' ');
+            model = line.substr(0, pos);
+            line.erase(0, pos + 1);
+
+            pos = line.find(' ');
+            rent = atof(line.substr(0, pos).c_str());
+            line.erase(0, pos + 1);
+
+            pos = line.find(' ');
+            availability = atoi(line.substr(0, pos).c_str());
+            line.erase(0, pos + 1);
+
+            pos = line.find(' ');
+            seats = atoi(line.substr(0, pos).c_str());
+            line.erase(0, pos + 1);
+
+            transmission = line;
+
+            avail = (availability == 1);
+            carList.addVehicle(new Car(id, brand, model, rent, avail, seats, transmission));
+        }
+        else {
+            // Parse bike details
+            int pos = 0;
+            pos = line.find(' ');
+            id = line.substr(0, pos);
+            line.erase(0, pos + 1);
+
+            pos = line.find(' ');
+            brand = line.substr(0, pos);
+            line.erase(0, pos + 1);
+
+            pos = line.find(' ');
+            model = line.substr(0, pos);
+            line.erase(0, pos + 1);
+
+            pos = line.find(' ');
+            rent = atof(line.substr(0, pos).c_str());
+            line.erase(0, pos + 1);
+
+            pos = line.find(' ');
+            availability = atoi(line.substr(0, pos).c_str());
+            line.erase(0, pos + 1);
+
+            gears = atoi(line.c_str());
+
+            avail = (availability == 1);
+            bikeList.addVehicle(new Bike(id, brand, model, rent, avail, gears));
+        }
+    }
+    read.close();
+}
+
+int main() {
+    cout << "\nWelcome to Car Rentals!\n";
+    Customer customer("Fatma Sumbal", 3346252555);
+
+    VehicleList carList;
+    VehicleList bikeList;
+
+    // Load vehicles into linked lists
+    loadVehicles(carList, bikeList);
+
+    int choice;
+    VehicleQueue rentedQueue;
+
+    do {
+        string id;
+        menu();
+        cin >> choice;
+
+        switch (choice) {
+        case 1: {
+            // Declare variables or perform actions
+            cout << "\n\tCars:";
+            carList.displayVehicles();
+            cout << "\n\tBikes:";
+            bikeList.displayVehicles();
+            break; // Ensure to break after each case
+        }
+
+        case 2: {
+            cout << "\nEnter Vehicle ID of the vehicle you want to rent: ";
+            cin >> id;
+
+            Vehicle* vehicleToRent = carList.searchVehicleById(id);
+            if (!vehicleToRent) {
+                vehicleToRent = bikeList.searchVehicleById(id);
+            }
+
+            if (vehicleToRent) {
+                if (vehicleToRent->getAvailablity()) {
+                    rentedQueue.enqueue(vehicleToRent); // Add to rented queue
+                    vehicleToRent->setAvailablity(false); // Mark as rented
+                    cout << "\n\tVehicle successfully rented!\n";
+                }
+                else {
+                    cout << "\n\tVehicle is not available!\n";
+                }
+            }
+            else {
+                cout << "\n\tIncorrect Vehicle ID Entered!\n";
+            }
+            break; // Ensure to break after each case
+        }
+
+        case 3: {
+            cout << "\n\tRented Vehicles:";
+            rentedQueue.display();
+            break; // Ensure to break after each case
+        }
+
+        case 4: {
+            cout << "\n\tExiting...\n";
+            break; // Ensure to break after each case
+        }
+
+        default: {
+            cout << "\n\tInvalid choice Entered!\n";
+            break; // Ensure to break after each case
+        }
+        }
+
+
+    } while (choice != 4);
+    return 0;
+}
